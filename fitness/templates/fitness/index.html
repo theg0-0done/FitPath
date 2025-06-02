@@ -1,0 +1,37 @@
+{% extends "fitness/layout.html" %}
+
+{% load static %}
+
+{% block body %}
+
+    <div class="brams">
+        <div class="bram">
+            <img src="https://images.pexels.com/photos/19801353/pexels-photo-19801353/free-photo-of-close-up-of-rows-of-dumbbells-at-the-gym.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="gym training">
+            <p>Gym Training</p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'gym' %}">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+            {% else %}
+            <img id="go" src="{% static 'fitness/go.jpg' %}">
+            {% endif %}
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/236x/5f/1e/af/5f1eaf74ed9d29728988a747a38137aa.jpg" alt="Calculate calories">
+            <p>TDEE</p>
+            <a href="{% url 'counter' %}">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/236x/84/dc/5f/84dc5f5fb9ea16858cf8a9164e840008.jpg" alt="home training">
+            <p>Meal Macros</p>
+            <a href="{% url 'macros' %}">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+    </div>
+
+    
+
+{% endblock %}

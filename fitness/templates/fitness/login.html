@@ -1,0 +1,25 @@
+{% extends "fitness/layout.html" %}
+
+{% load static %}
+
+{% block title %}Log In{% endblock title %}
+
+
+{% block body %}
+    
+    <div class="form">
+        <h2 class="title">Login</h2>
+        <form class="fields_form" action="{% url 'login' %}" method="post" autocomplete="off">
+            {% csrf_token %}
+            <div class="form-group">
+                <input autofocus class="form-control" type="text" name="username" placeholder="Username" required>
+            </div>
+            <div class="form-group">
+                <input class="form-control" type="password" name="password" placeholder="Password" required>
+            </div>
+            <input class="btn btn-primary" type="submit" value="Login">
+        </form>
+        <p class="text">Don't have an account? <a href="{% url 'register' %}">Register here.</a></p>
+    </div>
+
+{% endblock body %}

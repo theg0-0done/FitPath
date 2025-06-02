@@ -1,0 +1,259 @@
+{% extends "fitness/layout.html" %}
+
+{% load static %}
+
+{% block title %}Training at gym{% endblock title %}
+
+{% block body %}
+    <div id="search" style="width: 30%; display: flex; flex-wrap: wrap;" class="input-group rounded">
+        <input style="background-color: transparent;" type="search" class="form-control rounded" placeholder="Search" aria-label="Search" aria-describedby="search-addon" id="exerciseInput" autocomplete="off"/>
+        <span style="color: white; background-color: transparent;" class="input-group-text border-0" id="searchBtn">
+            <i class="fas fa-search"></i>
+        </span>
+    </div>
+    <div id="error" class="error" style="display:none;"></div>
+    <div class="exercises" id="result"></div>
+
+    <div class="brams">
+        <div class="bram">
+            <img src="https://i.pinimg.com/736x/be/b5/45/beb545580960831e312471cc200494aa.jpg">
+            <p>Back</p>
+            <a href="{% url 'exercises' %}?group=back">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/736x/3e/b7/5a/3eb75abc34ad790a6efb80685cd8bd4f.jpg">
+            <p>Chest</p>
+            <a href="{% url 'exercises' %}?target=chest">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/236x/de/86/1e/de861e57dcb4c2ef8108357a3cfe43df.jpg">
+            <p>Delts</p>
+            <a href="{% url 'exercises' %}?target=shoulders">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/736x/bc/4f/01/bc4f018dbe1cd777b39aca3b54cfe7f3.jpg">
+            <p>Arms</p>
+            <a href="{% url 'exercises' %}?group=arms">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/736x/51/e8/2c/51e82c0e328bf0e7c5026c685876b367.jpg">
+            <p>Legs</p>
+            <a href="{% url 'exercises' %}?group=legs">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <img src="https://i.pinimg.com/736x/07/34/e3/0734e31fca9a10057f5eeb6364e22bde.jpg">
+            <p>Core</p>
+            <a href="{% url 'exercises' %}?target=waist">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+        <div class="bram">
+            <p>Cardio</p>
+            <img src="https://images.pexels.com/photos/4944973/pexels-photo-4944973.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load">
+            <a href="{% url 'exercises' %}?target=cardio">
+                <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+            </a>
+        </div>
+    </div>
+
+<script>
+    const API_KEY = 'e3b31e1e3fmshdf819be7111964ep178735jsn957f5f3c5182';
+    const API_HOST = 'https://exercisedb.p.rapidapi.com';
+
+    const savedIcon = "https://cdn-icons-png.flaticon.com/128/102/102279.png";
+    const unsavedIcon = "https://cdn-icons-png.flaticon.com/128/5662/5662990.png";
+    const addIcon = "https://cdn-icons-png.flaticon.com/128/992/992651.png";
+    const addedIcon = "https://cdn-icons-png.flaticon.com/128/9403/9403270.png";
+
+    document.getElementById('searchBtn').addEventListener('click', searchExercise);
+    document.getElementById("exerciseInput").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            document.getElementById("searchBtn").click();
+        }
+    });
+
+    async function searchExercise() {
+        document.querySelector('.brams').style.display = 'none';
+        clearError();
+        const query = document.getElementById('exerciseInput').value.trim();
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '';
+
+        if (!query) return showError('Please enter an exercise name.');
+
+        try {
+            const response = await fetch(`${API_HOST}/exercises/name/${encodeURIComponent(query)}`, {
+                method: 'GET',
+                headers: {
+                    'X-RapidAPI-Key': API_KEY,
+                    'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
+                },
+            });
+
+            if (!response.ok) throw new Error(`Error: ${response.status}`);
+            const data = await response.json();
+
+            if (!Array.isArray(data) || data.length === 0)
+                return showError('No exercises found.');
+
+            const savedSet = getSavedExerciseSet();
+
+            data.forEach(ex => {
+                const { id, name = 'No name', bodyPart = 'N/A', equipment = 'N/A', gifUrl = '', target = 'N/A' } = ex;
+
+                const daysAdded = getDaysContainingExercise(id);
+                let addedToDay = daysAdded.length > 0;
+                let currentDay = daysAdded[0] || null;
+                let isSaved = savedSet.has(id);
+
+                const card = document.createElement('div');
+                card.className = 'exercise-card';
+
+                card.innerHTML = `
+                    ${gifUrl ? `<img src="${gifUrl}" alt="${name}" width="150">` : ''}
+                    <h4 style="white-space: wrap"><strong>${name}</strong></h4><br>
+                    <div style="position: relative; margin-bottom: 40px;">
+                        <strong>Body Part:</strong> ${bodyPart}<br>
+                        <strong>Target:</strong> ${target}<br>
+                        <strong>Equipment:</strong> ${equipment}<br>
+                    </div>
+                    <div style="position: relative;">
+                        <div class="daySelector" style="display:none; position:absolute; bottom: 30px; left:0; background:#fff; border:1px solid #ccc; padding:5px; border-radius:5px; z-index:10;">
+                            ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => `<div class="dayOption" style="cursor:pointer;" data-day="${day}">${day}</div>`).join('')}
+                        </div>
+                    </div>
+                    <img class="addBtn" src="${addedToDay ? addedIcon : addIcon}" style="cursor:pointer; width:24px;" />
+                    <img class="saveBtn" src="${isSaved ? savedIcon : unsavedIcon}" style="cursor:pointer; width:24px; margin-top:5px;" />
+                `;
+
+                const saveBtn = card.querySelector('.saveBtn');
+                saveBtn.addEventListener('click', () => {
+                    isSaved = !isSaved;
+                    saveBtn.src = isSaved ? savedIcon : unsavedIcon;
+
+                    if (isSaved) savedSet.add(id);
+                    else savedSet.delete(id);
+
+                    localStorage.setItem("savedExercises", JSON.stringify(Array.from(savedSet)));
+
+                    fetch('/api/toggle_save/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ id, saved: isSaved })
+                    }).catch(err => console.error('Toggle save error:', err));
+                });
+
+                const addBtn = card.querySelector('.addBtn');
+                const daySelector = card.querySelector('.daySelector');
+
+                addBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (addedToDay) {
+                        const local = localStorage.getItem("dayExercises_" + currentDay);
+                        if (local) {
+                            const list = JSON.parse(local);
+                            const newList = list.filter(item => item.id !== id);
+                            localStorage.setItem("dayExercises_" + currentDay, JSON.stringify(newList));
+                        }
+                        addedToDay = false;
+                        currentDay = null;
+                        addBtn.src = addIcon;
+                    } else {
+                        daySelector.style.display = daySelector.style.display === 'none' ? 'block' : 'none';
+                    }
+                });
+
+                daySelector.querySelectorAll('.dayOption').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const selectedDay = option.dataset.day;
+                        const local = localStorage.getItem("dayExercises_" + selectedDay);
+                        let list = local ? JSON.parse(local) : [];
+
+                        if (!list.some(item => item.id === id)) {
+                            list.push({ id, name, gifUrl, target });
+                            localStorage.setItem("dayExercises_" + selectedDay, JSON.stringify(list));
+                        }
+
+                        addedToDay = true;
+                        currentDay = selectedDay;
+                        addBtn.src = addedIcon;
+                        daySelector.style.display = 'none';
+                    });
+                });
+
+                resultDiv.appendChild(card);
+            });
+
+        } catch (err) {
+            console.error('Error fetching exercise data:', err);
+            showError('Error fetching exercise data.');
+        }
+    }
+
+    function showError(msg) {
+        const errDiv = document.getElementById('error');
+        errDiv.textContent = msg;
+        document.querySelector('.brams').style.display = 'block';
+        errDiv.style.display = 'block';
+        setTimeout(() => { errDiv.style.display = 'none'; }, 3000);
+    }
+
+    function clearError() {
+        const errDiv = document.getElementById('error');
+        errDiv.textContent = '';
+        errDiv.style.display = 'none';
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function getSavedExerciseSet() {
+        const local = localStorage.getItem("savedExercises");
+        if (!local) return new Set();
+        try {
+            const list = JSON.parse(local);
+            return new Set(list);
+        } catch {
+            return new Set();
+        }
+    }
+
+    function getDaysContainingExercise(exerciseId) {
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        return days.filter(day => {
+            const local = localStorage.getItem("dayExercises_" + day);
+            if (!local) return false;
+            const list = JSON.parse(local);
+            return list.some(item => item.id === exerciseId);
+        });
+    }
+</script>
+
+
+{% endblock body %}

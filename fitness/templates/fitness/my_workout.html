@@ -1,0 +1,64 @@
+{% extends "fitness/layout.html" %}
+
+{% load static %}
+
+{% block title %}My Workout{% endblock %}
+
+{% block body %}
+<h2>My Workout</h2>
+<div class="brams">
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/ba/99/14/ba991402048e718cdb13b40db3285711.jpg">
+        <p>Sunday</p>
+        <a href="{% url 'exercises' %}?day=Sunday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/65/a5/83/65a5837c28b99114cf6c2d2f6b6ddcac.jpg">
+        <p>Monday</p>
+        <a href="{% url 'exercises' %}?day=Monday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/15/35/5d/15355d5e2cec701abc787f8e5c38d79a.jpg">
+        <p>Tuesday</p>
+        <a href="{% url 'exercises' %}?day=Tuesday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/74/ba/90/74ba90acea553d34abdcff77ae2706a7.jpg">
+        <p>Wednes<span style="display:inline">-</span>day</p>
+        <a href="{% url 'exercises' %}?day=Wednesday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/70/53/d7/7053d7df90a7fbd41d6f4528a4fb35b0.jpg">
+        <p>Thurs<span style="display:inline">-</span>day</p>
+        <a href="{% url 'exercises' %}?day=Thursday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/27/7b/9f/277b9f6b8e708e46083e0d98c98c0ed4.jpg">
+        <p>Friday</p>
+        <a href="{% url 'exercises' %}?day=Friday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+    <div class="bram">
+        <img src="https://i.pinimg.com/736x/99/06/29/9906299e0398e38801c62521a3a0b2c0.jpg">
+        <p>Satur<span style="display:inline">-</span>day</p>
+        <a href="{% url 'exercises' %}?day=Saturday">
+            <img id="go" src="{% static 'fitness/go.jpg' %}" alt="Go arrow">
+        </a>
+    </div>
+</div>
+
+<script>
+
+</script>
+{% endblock %}

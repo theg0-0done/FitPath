@@ -1,0 +1,114 @@
+{% extends "fitness/layout.html" %}
+
+{% load static %}
+
+{% block title %}My Workout{% endblock %}
+
+{% block body %}
+<h2>Saved Exercises</h2>
+<div class="exercises" id="savedContainer"></div>
+
+<script>
+    const API_KEY = 'e3b31e1e3fmshdf819be7111964ep178735jsn957f5f3c5182';
+    const API_HOST = 'https://exercisedb.p.rapidapi.com';
+
+    const savedIcon = "https://cdn-icons-png.flaticon.com/128/102/102279.png";
+    const unsavedIcon = "https://cdn-icons-png.flaticon.com/128/5662/5662990.png";
+
+    async function fetchSavedIDs() {
+        const response = await fetch('/saved/');
+        return await response.json(); // Expected to return array of exercise IDs
+    }
+
+    async function fetchExerciseById(id) {
+        const response = await fetch(`${API_HOST}/exercises/exercise/${id}`, {
+            method: 'GET',
+            headers: {
+                'X-RapidAPI-Key': API_KEY,
+                'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com'
+            }
+        });
+        return await response.json();
+    }
+
+    async function loadSavedExercises() {
+        const savedContainer = document.getElementById('savedContainer');
+        savedContainer.innerHTML = '';
+
+        const savedIds = await fetchSavedIDs();
+
+        if (!Array.isArray(savedIds) || savedIds.length === 0 || savedIds.every(id => !id)) {
+            savedContainer.textContent = 'No saved exercises.';
+            return;
+        }
+
+        let count = 0;
+
+        for (const id of savedIds) {
+            if (!id) continue;
+
+            const ex = await fetchExerciseById(id);
+
+            if (!ex || !ex.id || !ex.name || !ex.gifUrl) continue;
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+
+            let isSaved = true;
+
+            card.innerHTML = `
+                <img src="${ex.gifUrl}" width="150" />
+                <h3>${ex.name}</h3>
+                <p><strong>Target:</strong> ${ex.target}</p>
+                <img class="saveBtn" src="${savedIcon}" alt="Save/Unsave" style="cursor:pointer; width:24px;"/>
+            `;
+
+            const saveBtn = card.querySelector('.saveBtn');
+            saveBtn.addEventListener('click', () => {
+                isSaved = !isSaved;
+                saveBtn.src = isSaved ? savedIcon : unsavedIcon;
+
+                fetch('/api/toggle_save/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        id: ex.id,
+                        saved: isSaved
+                    })
+                }).catch(error => console.error('Toggle save error:', error));
+            });
+
+            savedContainer.appendChild(card);
+            count++;
+        }
+
+        if (count === 0) {
+            savedContainer.textContent = '(No saved exercises.)';
+            savedContainer.style = 'color: white; display: flex; justify-content: center;';
+        }
+    }
+
+    // Utility function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    loadSavedExercises();
+</script>
+
+
+{% endblock %}

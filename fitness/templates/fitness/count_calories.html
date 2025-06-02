@@ -1,0 +1,60 @@
+{% extends "fitness/layout.html" %}
+{% load static %}
+
+{% block title %}Count Calories{% endblock title %}
+
+{% block body %}
+
+  <div class="form">
+    <form class="fields_form" action="{% url 'counter' %}" method="post" autocomplete="off">
+      {% csrf_token %}
+      <h3 class="title">Calories Counter</h3>
+      <div class="form-group">
+        <input autofocus class="form-control" type="number" name="height" placeholder="Height (in cm)" required>
+      </div>
+      <div class="form-group">
+        <select class="form-control" name="gender" required>
+          <option value="" disabled selected>Gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input class="form-control" type="number" name="weight" placeholder="Weight (in Kg)" required>
+      </div>
+      <div class="form-group">
+        <input class="form-control" type="number" name="age" placeholder="Age (15-80)" required>
+      </div>
+      <div class="form-group">
+        <select class="form-control" name="intensity" required>
+          <option value="" disabled selected>Intensity</option>
+          <option value="light">Light</option>
+          <option value="moderate">Moderate</option>
+          <option value="vigorous">Vigorous</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <select class="form-control" name="goal" required>
+          <option value="" disabled selected>Goal</option>
+          <option value="maintain">Maintain Weight</option>
+          <option value="lose">Lose Weight</option>
+          <option value="gain">Gain Weight</option>
+        </select>
+      </div>
+      <input type="submit" class="btn btn-outline-primary" value="Count">
+    </form>
+  </div>
+
+  {% if calories %}
+    <div class="result">
+      <p>Based on your inputs, your <strong>TDEE</strong> is <strong>{{ calories|floatformat:0 }}</strong> kcal/day.</p>
+      <h4>Your daily macronutrients for the “{{ goal|capfirst }}” goal ({{targeted_cals}} kcal/day):</h4>
+      <ul>
+        <li>Protein: <strong>{{ protein|floatformat:0 }}</strong> g</li>
+        <li>Carbs: <strong>{{ carbs|floatformat:0 }}</strong> g</li>
+        <li>Fat: <strong>{{ fat|floatformat:0 }}</strong> g</li>
+      </ul>
+    </div>
+  {% endif %}
+
+{% endblock body %}

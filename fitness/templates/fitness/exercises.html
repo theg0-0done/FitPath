@@ -1,0 +1,211 @@
+{% extends "fitness/layout.html" %}
+{% load static %}
+
+{% block title %}Exercise{% endblock %}
+
+{% block body %}
+<h2 id="pageTitle"></h2>
+<div class="exercises" id="exercisesContainer"></div>
+
+<script>
+    const API_KEY = 'e3b31e1e3fmshdf819be7111964ep178735jsn957f5f3c5182';
+    const API_HOST = 'https://exercisedb.p.rapidapi.com';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const group = urlParams.get('group');
+    const target = urlParams.get('target');
+    const day = urlParams.get('day');  // 👈 NEW: Get selected day
+
+    const targetsByGroup = {
+        legs: ['quads', 'hamstrings', 'calves', 'abductors', 'adductors'],
+        arms: ['biceps', 'triceps', 'forearms'],
+        back: ['lats', 'upper back', 'traps', 'spine'],
+        shoulders: ['delts']
+    };
+
+    async function fetchSavedApiIds() {
+        const response = await fetch('/saved');
+        const data = await response.json();
+        return new Set(data);
+    }
+
+    async function fetchExercisesByTarget(targetName) {
+        const response = await fetch(`${API_HOST}/exercises/bodyPart/${targetName}`, {
+            method: 'GET',
+            headers: {
+                'X-RapidAPI-Key': API_KEY,
+                'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com'
+            }
+        });
+        return await response.json();
+    }
+
+    async function fetchExercisesByGroup(groupName) {
+        const targets = targetsByGroup[groupName.toLowerCase()];
+        const allExercises = [];
+
+        const fetches = targets.map(t =>
+            fetch(`${API_HOST}/exercises/target/${t}`, {
+                method: 'GET',
+                headers: {
+                    'X-RapidAPI-Key': API_KEY,
+                    'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com'
+                }
+            }).then(res => res.json())
+        );
+
+        const results = await Promise.all(fetches);
+        results.forEach(data => {
+            if (Array.isArray(data)) allExercises.push(...data);
+        });
+
+        return allExercises;
+    }
+
+    function getCookie(name) {
+        const cookieValue = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return cookieValue ? cookieValue.pop() : '';
+    }
+
+    async function displayExercises(exercises, savedIds) {
+        const resultDiv = document.getElementById('exercisesContainer');
+        resultDiv.innerHTML = '';
+
+        const unsavedIcon = "https://cdn-icons-png.flaticon.com/128/5662/5662990.png";
+        const savedIcon = "https://cdn-icons-png.flaticon.com/128/102/102279.png";
+
+        const addIcon = "https://cdn-icons-png.flaticon.com/128/992/992651.png";
+        const addedIcon = "https://cdn-icons-png.flaticon.com/128/9403/9403270.png";
+
+        exercises.forEach(ex => {
+            if (!ex.id || !ex.name || !ex.target || !ex.gifUrl) return;
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+
+            let isSaved = savedIds.has(ex.id);
+
+            const addedToDays = getDaysContainingExercise(ex.id);
+            let addedToDay = addedToDays.length > 0;
+            let currentDay = addedToDays[0] || null;
+
+            card.innerHTML = `
+                <img src="${ex.gifUrl}" width="150" />
+                <h3>${ex.name}</h3>
+                <p style="margin-bottom: 50px;"><strong>Target:</strong> ${ex.target}</p>
+                <div style="position: relative;">
+                    <div class="daySelector" style="display: none; position: absolute; bottom: 30px; left: 0; color: white; background: #000629; border: 1px solid #ccc; padding: 5px; border-radius: 5px; z-index: 10;">
+                        ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => `<div class="dayOption" style="cursor:pointer;" data-day="${day}">${day}</div>`).join('')}
+                    </div>
+                </div>
+                <img class="addBtn" src="${addedToDay ? addedIcon : addIcon}"/>
+                <img class="saveBtn" src="${isSaved ? savedIcon : unsavedIcon}" style="cursor: pointer;" />
+            `;
+
+            const saveBtn = card.querySelector('.saveBtn');
+            saveBtn.addEventListener('click', () => {
+                isSaved = !isSaved;
+                saveBtn.src = isSaved ? savedIcon : unsavedIcon;
+
+                fetch('/api/toggle_save/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        id: ex.id,
+                        saved: isSaved
+                    })
+                }).catch(error => console.error('Toggle save error:', error));
+            });
+
+            const addBtn = card.querySelector('.addBtn');
+            const daySelector = card.querySelector('.daySelector');
+
+            addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                if (addedToDay) {
+                    // Remove from currentDay in localStorage
+                    const local = localStorage.getItem("dayExercises_" + currentDay);
+                    if (local) {
+                        const list = JSON.parse(local);
+                        const newList = list.filter(item => item.id !== ex.id);
+                        localStorage.setItem("dayExercises_" + currentDay, JSON.stringify(newList));
+                    }
+                    addedToDay = false;
+                    currentDay = null;
+                    addBtn.src = addIcon;
+                } else {
+                    daySelector.style.display = daySelector.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+
+            daySelector.querySelectorAll('.dayOption').forEach(option => {
+                option.addEventListener('click', () => {
+                    const selectedDay = option.dataset.day;
+                    const local = localStorage.getItem("dayExercises_" + selectedDay);
+                    let list = local ? JSON.parse(local) : [];
+
+                    // Avoid duplicates
+                    if (!list.some(item => item.id === ex.id)) {
+                        list.push({
+                            id: ex.id,
+                            name: ex.name,
+                            gifUrl: ex.gifUrl,
+                            target: ex.target
+                        });
+                        localStorage.setItem("dayExercises_" + selectedDay, JSON.stringify(list));
+                    }
+
+                    addedToDay = true;
+                    currentDay = selectedDay;
+                    addBtn.src = addedIcon;
+                    daySelector.style.display = 'none';
+                });
+            });
+
+            resultDiv.appendChild(card);
+        });
+    }
+
+    function getDaysContainingExercise(exerciseId) {
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        return days.filter(day => {
+            const local = localStorage.getItem("dayExercises_" + day);
+            if (!local) return false;
+            const list = JSON.parse(local);
+            return list.some(item => item.id === exerciseId);
+        });
+    }
+
+    async function main() {
+        const savedIds = await fetchSavedApiIds();
+
+        if (day) {
+            document.getElementById("pageTitle").textContent = `${day} Exercises`;
+            const local = localStorage.getItem("dayExercises_" + day);
+            if (local) {
+                const exercises = JSON.parse(local);
+                await displayExercises(exercises, savedIds);
+            } else {
+                document.getElementById('exercisesContainer').innerHTML = `<p style="color: white; display: flex; justify-content: center;">(No exercises added for ${day}.)</p>`;
+            }
+            return;
+        }
+
+        let exercises = [];
+
+        if (group) {
+            exercises = await fetchExercisesByGroup(group);
+        } else if (target) {
+            exercises = await fetchExercisesByTarget(target);
+        }
+
+        await displayExercises(exercises, savedIds);
+    }
+
+    main();
+</script>
+{% endblock %}
