@@ -53,8 +53,7 @@ def register(request):
 
         # Attempt to create new user
         try:
-            user = User.objects.create_user(username, password)
-            user.save()
+            user = User.objects.create_user(username=username, password=password)
         except IntegrityError:
             return render(request, "fitness/register.html", {
                 "error": "Username already taken."
